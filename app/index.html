@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Automation Challenge (Local Mirror)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="vendor/react.development.js"></script>
+<script src="vendor/react-dom.development.js"></script>
+<script src="vendor/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/plain" id="app-source">
+const { useState, useEffect, useRef } = React;
+
+// Utility to generate random class names (simulating CSS-in-JS)
+const generateRandomClass = () => `css-${Math.random().toString(36).substring(2, 8)}`;
+
+function AutomationChallenge() {
+  const [activeTab, setActiveTab] = useState('timing');
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-gray-100">
+      <header className="bg-gradient-to-r from-purple-900 to-indigo-900 py-6 px-4 border-b border-purple-700">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-2xl font-bold text-white">🎯 Playwright Automation Challenge</h1>
+          <p className="text-purple-200 mt-1 text-sm">Test your automation skills against real-world scenarios</p>
+        </div>
+      </header>
+
+      <nav className="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto flex overflow-x-auto">
+          {[
+            { id: 'timing', label: '⏱️ Timing Challenges', icon: '⏱️' },
+            { id: 'selectors', label: '🎯 Flaky Selectors', icon: '🎯' },
+            { id: 'responsive', label: '📱 Responsive', icon: '📱' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              data-tab={tab.id}
+              className={`px-6 py-4 font-medium transition-all whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'text-purple-400 border-b-2 border-purple-400 bg-gray-900'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      <main className="max-w-6xl mx-auto p-4 md:p-6">
+        {activeTab === 'timing' && <TimingChallenges />}
+        {activeTab === 'selectors' && <FlakySelectorChallenges />}
+        {activeTab === 'responsive' && <ResponsiveChallenges />}
+      </main>
+
+      <footer className="bg-gray-800 border-t border-gray-700 py-4 px-4 mt-8">
+        <div className="max-w-6xl mx-auto text-center text-gray-400 text-sm">
+          <p>Interview Automation Challenge • Built for Playwright Testing Practice</p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+// ============================================
+// CHALLENGE 1: TIMING & DYNAMIC CONTENT
+// ============================================
+function TimingChallenges() {
+  return (
+    <div className="space-y-8">
+      <ChallengeHeader
+        title="Challenge 1: Timing & Dynamic Content"
+        description="Master async operations, delayed rendering, and race conditions"
+      />
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <DelayedButtonChallenge />
+        <LazyLoadedListChallenge />
+        <DisappearingElementChallenge />
+        <DebounceInputChallenge />
+        <ProgressiveLoadChallenge />
+        <AnimatedNotificationChallenge />
+      </div>
+    </div>
+  );
+}
+
+function DelayedButtonChallenge() {
+  const [stage, setStage] = useState('initial');
+  const [clickCount, setClickCount] = useState(0);
+
+  const handleStart = () => {
+    setStage('loading');
+    setTimeout(() => {
+      setStage('ready');
+    }, Math.random() * 2000 + 1500);
+  };
+
+  const handleConfirm = () => {
+    setClickCount(c => c + 1);
+    setStage('success');
+    setTimeout(() => setStage('initial'), 2000);
+  };
+
+  return (
+    <ChallengeCard
+      title="1.1 Delayed Button Activation"
+      difficulty="Medium"
+      hint="Wait for the button to become enabled, not just visible"
+    >
+      <div className="space-y-4">
+        {stage === 'initial' && (
+          <button
+            onClick={handleStart}
+            data-testid="start-process"
+            className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
+          >
+            Start Process
+          </button>
+        )}
+
+        {stage === 'loading' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-center gap-2 py-3">
+              <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+              <span className="text-gray-300">Processing...</span>
+            </div>
+            <button
+              disabled
+              data-testid="confirm-button"
+              className="w-full py-3 bg-gray-600 rounded-lg font-medium cursor-not-allowed opacity-50"
+            >
+              Please Wait...
+            </button>
+          </div>
+        )}
+
+        {stage === 'ready' && (
+          <button
+            onClick={handleConfirm}
+            data-testid="confirm-button"
+            className="w-full py-3 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition-colors"
+          >
+            ✓ Confirm Action
+          </button>
+        )}
+
+        {stage === 'success' && (
+          <div data-testid="success-message" className="py-3 bg-green-900 border border-green-700 rounded-lg text-center text-green-300">
+            ✓ Action Confirmed Successfully!
+          </div>
+        )}
+
+        <div className="text-sm text-gray-400">
+          Confirmations: <span data-testid="click-count">{clickCount}</span>
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function LazyLoadedListChallenge() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+
+  const loadMore = () => {
+    setLoading(true);
+    setTimeout(() => {
+      const newItems = Array.from({ length: 5 }, (_, i) => ({
+        id: page * 5 + i + 1,
+        name: `Item ${page * 5 + i + 1}`,
+        status: Math.random() > 0.5 ? 'active' : 'pending'
+      }));
+      setItems(prev => [...prev, ...newItems]);
+      setPage(p => p + 1);
+      setLoading(false);
+    }, Math.random() * 1500 + 800);
+  };
+
+  return (
+    <ChallengeCard
+      title="1.2 Lazy Loaded List"
+      difficulty="Medium"
+      hint="Wait for loading to complete and new items to appear"
+    >
+      <div className="space-y-3">
+        <div
+          data-testid="item-list"
+          className="max-h-48 overflow-y-auto space-y-2 bg-gray-800 rounded-lg p-2"
+        >
+          {items.length === 0 && !loading && (
+            <p className="text-gray-500 text-center py-4">No items loaded</p>
+          )}
+          {items.map(item => (
+            <div
+              key={item.id}
+              data-testid={`list-item-${item.id}`}
+              className="flex justify-between items-center p-2 bg-gray-700 rounded"
+            >
+              <span>{item.name}</span>
+              <span className={`text-xs px-2 py-1 rounded ${
+                item.status === 'active' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'
+              }`}>
+                {item.status}
+              </span>
+            </div>
+          ))}
+          {loading && (
+            <div data-testid="list-loading" className="flex justify-center py-3">
+              <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={loadMore}
+          disabled={loading}
+          data-testid="load-more"
+          className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
+        >
+          {loading ? 'Loading...' : 'Load More Items'}
+        </button>
+
+        <div className="text-sm text-gray-400">
+          Total items: <span data-testid="item-count">{items.length}</span>
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function DisappearingElementChallenge() {
+  const [visible, setVisible] = useState(false);
+  const [captured, setCaptured] = useState(false);
+
+  const showElement = () => {
+    setVisible(true);
+    setCaptured(false);
+    setTimeout(() => {
+      setVisible(false);
+    }, 3000);
+  };
+
+  const captureElement = () => {
+    if (visible) {
+      setCaptured(true);
+      setVisible(false);
+    }
+  };
+
+  return (
+    <ChallengeCard
+      title="1.3 Disappearing Element"
+      difficulty="Hard"
+      hint="You have 3 seconds to click the target before it vanishes"
+    >
+      <div className="space-y-4">
+        <button
+          onClick={showElement}
+          data-testid="spawn-target"
+          className="w-full py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
+        >
+          Spawn Target
+        </button>
+
+        <div className="h-24 bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden">
+          {!visible && !captured && (
+            <span className="text-gray-500">Target area</span>
+          )}
+
+          {visible && (
+            <button
+              onClick={captureElement}
+              data-testid="capture-target"
+              className="absolute px-6 py-3 bg-red-500 hover:bg-red-600 rounded-lg font-bold animate-pulse transition-all"
+              style={{
+                left: `${Math.random() * 60 + 10}%`,
+                top: `${Math.random() * 40 + 20}%`,
+                transform: 'translate(-50%, -50%)'
+              }}
+            >
+              🎯 CATCH ME!
+            </button>
+          )}
+
+          {captured && (
+            <div data-testid="capture-success" className="text-green-400 font-bold">
+              ✓ Target Captured!
+            </div>
+          )}
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function DebounceInputChallenge() {
+  const [inputValue, setInputValue] = useState('');
+  const [searchResult, setSearchResult] = useState(null);
+  const [searching, setSearching] = useState(false);
+  const timeoutRef = useRef(null);
+
+  const handleInput = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    setSearchResult(null);
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    if (value.length >= 3) {
+      setSearching(true);
+      timeoutRef.current = setTimeout(() => {
+        setSearchResult({
+          query: value,
+          count: Math.floor(Math.random() * 100) + 1
+        });
+        setSearching(false);
+      }, 800);
+    } else {
+      setSearching(false);
+    }
+  };
+
+  return (
+    <ChallengeCard
+      title="1.4 Debounced Search"
+      difficulty="Medium"
+      hint="Wait for debounce delay (800ms) after typing stops"
+    >
+      <div className="space-y-4">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={handleInput}
+          placeholder="Type at least 3 characters..."
+          data-testid="search-input"
+          className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:border-purple-500 focus:outline-none"
+        />
+
+        <div className="h-16 bg-gray-800 rounded-lg flex items-center justify-center">
+          {searching && (
+            <div data-testid="search-loading" className="flex items-center gap-2 text-gray-400">
+              <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+              Searching...
+            </div>
+          )}
+
+          {!searching && searchResult && (
+            <div data-testid="search-result" className="text-center">
+              <p className="text-gray-300">Results for "<span className="text-purple-400">{searchResult.query}</span>"</p>
+              <p className="text-sm text-gray-400">{searchResult.count} items found</p>
+            </div>
+          )}
+
+          {!searching && !searchResult && inputValue.length < 3 && (
+            <span className="text-gray-500 text-sm">Enter search query</span>
+          )}
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function ProgressiveLoadChallenge() {
+  const [stage, setStage] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  const startLoad = () => {
+    setLoading(true);
+    setStage(0);
+
+    const stages = [1, 2, 3, 4];
+    stages.forEach((s, i) => {
+      setTimeout(() => {
+        setStage(s);
+        if (s === 4) setLoading(false);
+      }, (i + 1) * 700);
+    });
+  };
+
+  return (
+    <ChallengeCard
+      title="1.5 Progressive Loading"
+      difficulty="Hard"
+      hint="Wait for ALL stages to complete, not just the first"
+    >
+      <div className="space-y-4">
+        <button
+          onClick={startLoad}
+          disabled={loading}
+          data-testid="start-progressive"
+          className="w-full py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 rounded-lg font-medium transition-colors"
+        >
+          {loading ? 'Loading...' : 'Start Multi-Stage Load'}
+        </button>
+
+        <div className="space-y-2">
+          {[
+            { num: 1, label: 'Fetching user data...' },
+            { num: 2, label: 'Loading preferences...' },
+            { num: 3, label: 'Syncing content...' },
+            { num: 4, label: 'Finalizing...' }
+          ].map(({ num, label }) => (
+            <div
+              key={num}
+              data-testid={`stage-${num}`}
+              data-completed={stage >= num}
+              className={`flex items-center gap-3 p-2 rounded transition-all ${
+                stage >= num ? 'bg-green-900 border border-green-700' : 'bg-gray-800 border border-gray-700'
+              }`}
+            >
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm ${
+                stage >= num ? 'bg-green-600' : 'bg-gray-600'
+              }`}>
+                {stage >= num ? '✓' : num}
+              </div>
+              <span className={stage >= num ? 'text-green-300' : 'text-gray-400'}>{label}</span>
+            </div>
+          ))}
+        </div>
+
+        {stage === 4 && (
+          <div data-testid="all-complete" className="text-center py-2 bg-green-900 rounded-lg text-green-300 font-medium">
+            ✓ All Stages Complete!
+          </div>
+        )}
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function AnimatedNotificationChallenge() {
+  const [notifications, setNotifications] = useState([]);
+
+  const addNotification = () => {
+    const id = Date.now();
+    const types = ['success', 'warning', 'error', 'info'];
+    const type = types[Math.floor(Math.random() * types.length)];
+
+    setNotifications(prev => [...prev, { id, type, message: `Notification #${id.toString().slice(-4)}` }]);
+
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, Math.random() * 3000 + 2000);
+  };
+
+  const dismissNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const typeStyles = {
+    success: 'bg-green-900 border-green-600',
+    warning: 'bg-yellow-900 border-yellow-600',
+    error: 'bg-red-900 border-red-600',
+    info: 'bg-blue-900 border-blue-600'
+  };
+
+  return (
+    <ChallengeCard
+      title="1.6 Toast Notifications"
+      difficulty="Hard"
+      hint="Notifications auto-dismiss; interact before they vanish"
+    >
+      <div className="space-y-4">
+        <button
+          onClick={addNotification}
+          data-testid="add-notification"
+          className="w-full py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
+        >
+          Trigger Notification
+        </button>
+
+        <div data-testid="notification-container" className="space-y-2 min-h-[120px]">
+          {notifications.length === 0 && (
+            <p className="text-gray-500 text-center py-4">No active notifications</p>
+          )}
+          {notifications.map(notif => (
+            <div
+              key={notif.id}
+              data-testid={`notification-${notif.id}`}
+              data-type={notif.type}
+              className={`flex justify-between items-center p-3 rounded-lg border ${typeStyles[notif.type]} animate-pulse`}
+            >
+              <span>{notif.message} ({notif.type})</span>
+              <button
+                onClick={() => dismissNotification(notif.id)}
+                data-testid={`dismiss-${notif.id}`}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="text-sm text-gray-400">
+          Active: <span data-testid="notification-count">{notifications.length}</span>
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+// ============================================
+// CHALLENGE 2: FLAKY SELECTORS
+// ============================================
+function FlakySelectorChallenges() {
+  return (
+    <div className="space-y-8">
+      <ChallengeHeader
+        title="Challenge 2: Flaky Selectors & DOM Instability"
+        description="Handle dynamic IDs, changing classes, and unstable DOM structures"
+      />
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <DynamicIdChallenge />
+        <RandomClassChallenge />
+        <ReorderingListChallenge />
+        <NestedDynamicChallenge />
+        <ConditionalRenderChallenge />
+        <TextContentChallenge />
+      </div>
+    </div>
+  );
+}
+
+function DynamicIdChallenge() {
+  const [items, setItems] = useState([
+    { id: `item-${Date.now()}-1`, name: 'Alpha', value: 100 },
+    { id: `item-${Date.now()}-2`, name: 'Beta', value: 200 },
+    { id: `item-${Date.now()}-3`, name: 'Gamma', value: 300 },
+  ]);
+  const [selected, setSelected] = useState(null);
+
+  const regenerateIds = () => {
+    setItems(prev => prev.map(item => ({
+      ...item,
+      id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+    })));
+  };
+
+  return (
+    <ChallengeCard
+      title="2.1 Dynamic IDs"
+      difficulty="Medium"
+      hint="IDs change on every regeneration - use stable attributes"
+    >
+      <div className="space-y-4">
+        <button
+          onClick={regenerateIds}
+          data-testid="regenerate-ids"
+          className="w-full py-2 bg-orange-600 hover:bg-orange-700 rounded-lg font-medium transition-colors"
+        >
+          🔄 Regenerate All IDs
+        </button>
+
+        <div className="space-y-2">
+          {items.map(item => (
+            <div
+              key={item.id}
+              id={item.id}
+              data-name={item.name}
+              onClick={() => setSelected(item.name)}
+              className={`p-3 rounded-lg cursor-pointer transition-all ${
+                selected === item.name
+                  ? 'bg-purple-900 border-2 border-purple-500'
+                  : 'bg-gray-800 border border-gray-700 hover:border-gray-500'
+              }`}
+            >
+              <div className="flex justify-between">
+                <span className="font-medium">{item.name}</span>
+                <span className="text-gray-400">Value: {item.value}</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">ID: {item.id}</div>
+            </div>
+          ))}
+        </div>
+
+        <div data-testid="selected-item" className="text-sm text-gray-400">
+          Selected: {selected || 'None'}
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function RandomClassChallenge() {
+  const [buttonClasses, setButtonClasses] = useState({});
+  const [clickedButton, setClickedButton] = useState(null);
+
+  useEffect(() => {
+    const updateClasses = () => {
+      setButtonClasses({
+        primary: generateRandomClass(),
+        secondary: generateRandomClass(),
+        tertiary: generateRandomClass()
+      });
+    };
+
+    updateClasses();
+    const interval = setInterval(updateClasses, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const buttons = [
+    { type: 'primary', label: 'Submit Form', color: 'bg-blue-600 hover:bg-blue-700' },
+    { type: 'secondary', label: 'Save Draft', color: 'bg-gray-600 hover:bg-gray-700' },
+    { type: 'tertiary', label: 'Cancel', color: 'bg-red-600 hover:bg-red-700' }
+  ];
+
+  return (
+    <ChallengeCard
+      title="2.2 CSS-in-JS Random Classes"
+      difficulty="Hard"
+      hint="Classes regenerate every 5s - use data attributes or text"
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-gray-400">Classes change every 5 seconds:</p>
+
+        <div className="space-y-2">
+          {buttons.map(btn => (
+            <button
+              key={btn.type}
+              onClick={() => setClickedButton(btn.type)}
+              data-button-type={btn.type}
+              className={`w-full py-2 ${btn.color} ${buttonClasses[btn.type]} rounded-lg font-medium transition-colors`}
+            >
+              {btn.label}
+              <span className="text-xs ml-2 opacity-60">(.{buttonClasses[btn.type]})</span>
+            </button>
+          ))}
+        </div>
+
+        <div data-testid="clicked-button" className="text-sm text-gray-400">
+          Last clicked: {clickedButton || 'None'}
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function ReorderingListChallenge() {
+  const [items, setItems] = useState([
+    { id: 1, name: 'Task A', priority: 'high' },
+    { id: 2, name: 'Task B', priority: 'medium' },
+    { id: 3, name: 'Task C', priority: 'low' },
+    { id: 4, name: 'Task D', priority: 'high' },
+    { id: 5, name: 'Task E', priority: 'medium' },
+  ]);
+  const [selectedTask, setSelectedTask] = useState(null);
+
+  const shuffleList = () => {
+    setItems(prev => [...prev].sort(() => Math.random() - 0.5));
+  };
+
+  const sortByPriority = () => {
+    const order = { high: 0, medium: 1, low: 2 };
+    setItems(prev => [...prev].sort((a, b) => order[a.priority] - order[b.priority]));
+  };
+
+  const priorityColors = {
+    high: 'bg-red-900 text-red-300',
+    medium: 'bg-yellow-900 text-yellow-300',
+    low: 'bg-green-900 text-green-300'
+  };
+
+  return (
+    <ChallengeCard
+      title="2.3 Reordering List"
+      difficulty="Hard"
+      hint="List order changes - don't rely on nth-child selectors"
+    >
+      <div className="space-y-4">
+        <div className="flex gap-2">
+          <button
+            onClick={shuffleList}
+            data-testid="shuffle-list"
+            className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
+          >
+            🔀 Shuffle
+          </button>
+          <button
+            onClick={sortByPriority}
+            data-testid="sort-priority"
+            className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition-colors"
+          >
+            📊 Sort by Priority
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {items.map((item, index) => (
+            <div
+              key={item.id}
+              data-task-id={item.id}
+              data-task-name={item.name}
+              onClick={() => setSelectedTask(item.name)}
+              className={`flex justify-between items-center p-3 rounded-lg cursor-pointer transition-all ${
+                selectedTask === item.name
+                  ? 'bg-purple-900 border-2 border-purple-500'
+                  : 'bg-gray-800 border border-gray-700 hover:border-gray-500'
+              }`}
+            >
+              <div>
+                <span className="font-medium">{item.name}</span>
+                <span className="text-gray-500 text-sm ml-2">(Position: {index + 1})</span>
+              </div>
+              <span className={`text-xs px-2 py-1 rounded ${priorityColors[item.priority]}`}>
+                {item.priority}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div data-testid="selected-task" className="text-sm text-gray-400">
+          Selected: {selectedTask || 'None'}
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function NestedDynamicChallenge() {
+  const [data, setData] = useState({
+    sections: [
+      {
+        id: `sec-${Date.now()}-1`,
+        title: 'Section A',
+        items: [
+          { id: `item-${Date.now()}-a1`, text: 'Item A1' },
+          { id: `item-${Date.now()}-a2`, text: 'Item A2' },
+        ]
+      },
+      {
+        id: `sec-${Date.now()}-2`,
+        title: 'Section B',
+        items: [
+          { id: `item-${Date.now()}-b1`, text: 'Item B1' },
+          { id: `item-${Date.now()}-b2`, text: 'Item B2' },
+        ]
+      }
+    ]
+  });
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  const regenerate = () => {
+    setData({
+      sections: data.sections.map(section => ({
+        ...section,
+        id: `sec-${Date.now()}-${Math.random().toString(36).substring(2, 4)}`,
+        items: section.items.map(item => ({
+          ...item,
+          id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+        }))
+      }))
+    });
+  };
+
+  return (
+    <ChallengeCard
+      title="2.4 Nested Dynamic Structure"
+      difficulty="Very Hard"
+      hint="Navigate nested structures with changing IDs at every level"
+    >
+      <div className="space-y-4">
+        <button
+          onClick={regenerate}
+          data-testid="regenerate-nested"
+          className="w-full py-2 bg-orange-600 hover:bg-orange-700 rounded-lg font-medium transition-colors"
+        >
+          🔄 Regenerate All IDs
+        </button>
+
+        <div className="space-y-3">
+          {data.sections.map(section => (
+            <div
+              key={section.id}
+              id={section.id}
+              data-section-title={section.title}
+              className="bg-gray-800 rounded-lg p-3"
+            >
+              <h4 className="font-medium text-purple-400 mb-2">{section.title}</h4>
+              <div className="space-y-1 ml-3">
+                {section.items.map(item => (
+                  <div
+                    key={item.id}
+                    id={item.id}
+                    data-item-text={item.text}
+                    onClick={() => setSelectedItem(item.text)}
+                    className={`p-2 rounded cursor-pointer transition-all ${
+                      selectedItem === item.text
+                        ? 'bg-purple-700'
+                        : 'bg-gray-700 hover:bg-gray-600'
+                    }`}
+                  >
+                    {item.text}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div data-testid="nested-selected" className="text-sm text-gray-400">
+          Selected: {selectedItem || 'None'}
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function ConditionalRenderChallenge() {
+  const [state, setState] = useState('logged-out');
+  const [userType, setUserType] = useState('standard');
+
+  const login = (type) => {
+    setState('loading');
+    setTimeout(() => {
+      setUserType(type);
+      setState('logged-in');
+    }, 1000);
+  };
+
+  const logout = () => {
+    setState('logged-out');
+  };
+
+  return (
+    <ChallengeCard
+      title="2.5 Conditional Rendering"
+      difficulty="Medium"
+      hint="DOM structure changes based on state - elements appear/disappear"
+    >
+      <div className="space-y-4">
+        {state === 'logged-out' && (
+          <div data-testid="login-section" className="space-y-2">
+            <p className="text-gray-400 mb-2">Choose login type:</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => login('standard')}
+                data-testid="login-standard"
+                className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium"
+              >
+                Standard User
+              </button>
+              <button
+                onClick={() => login('admin')}
+                data-testid="login-admin"
+                className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium"
+              >
+                Admin User
+              </button>
+            </div>
+          </div>
+        )}
+
+        {state === 'loading' && (
+          <div data-testid="loading-section" className="flex items-center justify-center py-8">
+            <div className="w-6 h-6 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+            <span className="ml-2 text-gray-300">Authenticating...</span>
+          </div>
+        )}
+
+        {state === 'logged-in' && (
+          <div data-testid="dashboard-section" className="space-y-3">
+            <div className="bg-gray-800 rounded-lg p-4">
+              <p className="text-gray-300">Welcome, <span data-testid="user-type" className="text-purple-400 font-medium">{userType}</span> user!</p>
+
+              {userType === 'admin' && (
+                <div data-testid="admin-panel" className="mt-3 p-3 bg-purple-900 border border-purple-700 rounded">
+                  <p className="text-purple-300 font-medium">🔐 Admin Panel</p>
+                  <p className="text-sm text-purple-400">You have elevated privileges</p>
+                </div>
+              )}
+
+              {userType === 'standard' && (
+                <div data-testid="standard-panel" className="mt-3 p-3 bg-blue-900 border border-blue-700 rounded">
+                  <p className="text-blue-300 font-medium">👤 User Dashboard</p>
+                  <p className="text-sm text-blue-400">Standard access level</p>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={logout}
+              data-testid="logout-button"
+              className="w-full py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium"
+            >
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function TextContentChallenge() {
+  const [messages, setMessages] = useState([
+    'Welcome to the platform!',
+    'Your changes have been saved.',
+    'Processing your request...',
+  ]);
+  const [foundMessage, setFoundMessage] = useState(null);
+
+  const randomizeMessages = () => {
+    const allMessages = [
+      'Welcome to the platform!',
+      'Your changes have been saved.',
+      'Processing your request...',
+      'Error: Please try again.',
+      'Success! Operation complete.',
+      'Warning: Unsaved changes.',
+      'Loading your data...',
+      'Ready to proceed.',
+    ];
+
+    const shuffled = allMessages.sort(() => Math.random() - 0.5);
+    setMessages(shuffled.slice(0, 4));
+  };
+
+  const findSuccessMessage = () => {
+    const success = messages.find(m => m.toLowerCase().includes('success'));
+    setFoundMessage(success || 'No success message found');
+  };
+
+  return (
+    <ChallengeCard
+      title="2.6 Text Content Selection"
+      difficulty="Medium"
+      hint="Use text content to find elements when other selectors fail"
+    >
+      <div className="space-y-4">
+        <button
+          onClick={randomizeMessages}
+          data-testid="randomize-messages"
+          className="w-full py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium"
+        >
+          🎲 Randomize Messages
+        </button>
+
+        <div data-testid="message-container" className="space-y-2">
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`p-3 rounded-lg ${
+                msg.includes('Error') ? 'bg-red-900 border border-red-700' :
+                msg.includes('Success') ? 'bg-green-900 border border-green-700' :
+                msg.includes('Warning') ? 'bg-yellow-900 border border-yellow-700' :
+                'bg-gray-800 border border-gray-700'
+              }`}
+            >
+              {msg}
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={findSuccessMessage}
+          data-testid="find-success"
+          className="w-full py-2 bg-green-600 hover:bg-green-700 rounded-lg font-medium"
+        >
+          🔍 Find Success Message
+        </button>
+
+        {foundMessage && (
+          <div data-testid="found-message" className="text-sm text-gray-400">
+            Found: {foundMessage}
+          </div>
+        )}
+      </div>
+    </ChallengeCard>
+  );
+}
+
+// ============================================
+// CHALLENGE 3: RESPONSIVE & CROSS-BROWSER
+// ============================================
+function ResponsiveChallenges() {
+  return (
+    <div className="space-y-8">
+      <ChallengeHeader
+        title="Challenge 3: Responsive & Cross-Browser Behavior"
+        description="Handle viewport changes, touch interactions, and browser-specific behaviors"
+      />
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <ViewportAwareChallenge />
+        <HoverVsTouchChallenge />
+        <StickyHeaderChallenge />
+        <ScrollIntoViewChallenge />
+        <ModalOverlayChallenge />
+        <DragDropChallenge />
+      </div>
+    </div>
+  );
+}
+
+function ViewportAwareChallenge() {
+  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const [clickedButton, setClickedButton] = useState(null);
+
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = viewportWidth < 768;
+
+  return (
+    <ChallengeCard
+      title="3.1 Viewport-Aware Elements"
+      difficulty="Medium"
+      hint="Different elements render based on viewport width"
+    >
+      <div className="space-y-4">
+        <div className="text-sm text-gray-400">
+          Current viewport: <span data-testid="viewport-width">{viewportWidth}px</span>
+          <span className="ml-2">({isMobile ? 'Mobile' : 'Desktop'})</span>
+        </div>
+
+        {isMobile ? (
+          <div data-testid="mobile-layout" className="space-y-2">
+            <p className="text-purple-400 text-sm">📱 Mobile Layout Active</p>
+            <button
+              onClick={() => setClickedButton('mobile-action')}
+              data-testid="mobile-action"
+              className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium"
+            >
+              Mobile Action Button
+            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setClickedButton('mobile-opt-1')}
+                data-testid="mobile-option-1"
+                className="py-2 bg-gray-700 hover:bg-gray-600 rounded"
+              >
+                Option 1
+              </button>
+              <button
+                onClick={() => setClickedButton('mobile-opt-2')}
+                data-testid="mobile-option-2"
+                className="py-2 bg-gray-700 hover:bg-gray-600 rounded"
+              >
+                Option 2
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div data-testid="desktop-layout" className="space-y-2">
+            <p className="text-indigo-400 text-sm">🖥️ Desktop Layout Active</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setClickedButton('desktop-primary')}
+                data-testid="desktop-primary"
+                className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium"
+              >
+                Primary Action
+              </button>
+              <button
+                onClick={() => setClickedButton('desktop-secondary')}
+                data-testid="desktop-secondary"
+                className="flex-1 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium"
+              >
+                Secondary
+              </button>
+              <button
+                onClick={() => setClickedButton('desktop-tertiary')}
+                data-testid="desktop-tertiary"
+                className="py-2 px-4 bg-gray-700 hover:bg-gray-600 rounded-lg"
+              >
+                ⚙️
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div data-testid="clicked-action" className="text-sm text-gray-400">
+          Clicked: {clickedButton || 'None'}
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function HoverVsTouchChallenge() {
+  const [hoveredItem, setHoveredItem] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showActions, setShowActions] = useState({});
+
+  const items = ['Item Alpha', 'Item Beta', 'Item Gamma'];
+
+  const toggleActions = (item) => {
+    setShowActions(prev => ({
+      ...prev,
+      [item]: !prev[item]
+    }));
+  };
+
+  return (
+    <ChallengeCard
+      title="3.2 Hover vs Touch Interactions"
+      difficulty="Hard"
+      hint="Hover menus don't work on touch - need tap/click alternative"
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-gray-400">Desktop: Hover to see actions. Mobile: Tap the menu icon.</p>
+
+        <div className="space-y-2">
+          {items.map(item => (
+            <div
+              key={item}
+              data-testid={`hover-item-${item.split(' ')[1].toLowerCase()}`}
+              onMouseEnter={() => setHoveredItem(item)}
+              onMouseLeave={() => setHoveredItem(null)}
+              className="relative flex justify-between items-center p-3 bg-gray-800 rounded-lg group"
+            >
+              <span>{item}</span>
+
+              <div className={`hidden md:flex gap-2 transition-opacity ${
+                hoveredItem === item ? 'opacity-100' : 'opacity-0'
+              }`}>
+                <button
+                  onClick={() => setSelectedItem(`Edit ${item}`)}
+                  data-testid={`edit-${item.split(' ')[1].toLowerCase()}`}
+                  className="px-2 py-1 bg-blue-600 rounded text-sm hover:bg-blue-700"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => setSelectedItem(`Delete ${item}`)}
+                  data-testid={`delete-${item.split(' ')[1].toLowerCase()}`}
+                  className="px-2 py-1 bg-red-600 rounded text-sm hover:bg-red-700"
+                >
+                  Delete
+                </button>
+              </div>
+
+              <button
+                onClick={() => toggleActions(item)}
+                data-testid={`menu-${item.split(' ')[1].toLowerCase()}`}
+                className="md:hidden p-2 bg-gray-700 rounded"
+              >
+                ⋮
+              </button>
+
+              {showActions[item] && (
+                <div className="md:hidden absolute right-0 top-full mt-1 bg-gray-700 rounded shadow-lg z-10">
+                  <button
+                    onClick={() => { setSelectedItem(`Edit ${item}`); toggleActions(item); }}
+                    data-testid={`mobile-edit-${item.split(' ')[1].toLowerCase()}`}
+                    className="block w-full px-4 py-2 text-left hover:bg-gray-600"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => { setSelectedItem(`Delete ${item}`); toggleActions(item); }}
+                    data-testid={`mobile-delete-${item.split(' ')[1].toLowerCase()}`}
+                    className="block w-full px-4 py-2 text-left hover:bg-gray-600"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div data-testid="selected-action" className="text-sm text-gray-400">
+          Action: {selectedItem || 'None'}
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function StickyHeaderChallenge() {
+  const [targetClicked, setTargetClicked] = useState(false);
+
+  return (
+    <ChallengeCard
+      title="3.3 Sticky Header Obstruction"
+      difficulty="Hard"
+      hint="Element may be behind sticky header - scroll with offset"
+    >
+      <div className="space-y-4">
+        <div className="relative">
+          <div className="sticky top-0 bg-purple-900 p-2 rounded-t-lg z-10 border-b border-purple-700">
+            <span className="font-medium">📌 Sticky Header (blocks clicks!)</span>
+          </div>
+
+          <div
+            data-testid="scroll-container"
+            className="h-48 overflow-y-auto bg-gray-800 rounded-b-lg"
+          >
+            <div className="p-4 space-y-4">
+              {Array.from({ length: 8 }, (_, i) => (
+                <div key={i} className="p-3 bg-gray-700 rounded">
+                  {i === 5 ? (
+                    <button
+                      onClick={() => setTargetClicked(true)}
+                      data-testid="obstructed-target"
+                      className="w-full py-2 bg-green-600 hover:bg-green-700 rounded font-medium"
+                    >
+                      🎯 Target Button (scroll here!)
+                    </button>
+                  ) : (
+                    <span className="text-gray-400">Content block {i + 1}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div data-testid="target-status" className="text-sm">
+          {targetClicked ? (
+            <span className="text-green-400">✓ Target successfully clicked!</span>
+          ) : (
+            <span className="text-gray-400">Target not clicked yet</span>
+          )}
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function ScrollIntoViewChallenge() {
+  const [visibleSection, setVisibleSection] = useState(null);
+  const sectionRefs = useRef({});
+
+  const sections = ['intro', 'features', 'pricing', 'contact'];
+
+  const scrollToSection = (section) => {
+    sectionRefs.current[section]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => setVisibleSection(section), 500);
+  };
+
+  return (
+    <ChallengeCard
+      title="3.4 Scroll Into View"
+      difficulty="Medium"
+      hint="Element must be scrolled into viewport before interaction"
+    >
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {sections.map(section => (
+            <button
+              key={section}
+              onClick={() => scrollToSection(section)}
+              data-testid={`nav-${section}`}
+              className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm capitalize"
+            >
+              {section}
+            </button>
+          ))}
+        </div>
+
+        <div
+          data-testid="scroll-area"
+          className="h-48 overflow-y-auto bg-gray-800 rounded-lg"
+        >
+          <div className="p-4 space-y-32">
+            {sections.map(section => (
+              <div
+                key={section}
+                ref={el => sectionRefs.current[section] = el}
+                data-testid={`section-${section}`}
+                data-section={section}
+                className={`p-4 rounded-lg transition-colors ${
+                  visibleSection === section
+                    ? 'bg-purple-900 border-2 border-purple-500'
+                    : 'bg-gray-700'
+                }`}
+              >
+                <h4 className="font-medium capitalize mb-2">{section} Section</h4>
+                <button
+                  data-testid={`action-${section}`}
+                  onClick={() => setVisibleSection(section)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded"
+                >
+                  Activate {section}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div data-testid="active-section" className="text-sm text-gray-400">
+          Active section: {visibleSection || 'None'}
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function ModalOverlayChallenge() {
+  const [showModal, setShowModal] = useState(false);
+  const [showNested, setShowNested] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleConfirm = () => {
+    setResult('confirmed');
+    setShowNested(false);
+    setShowModal(false);
+  };
+
+  const handleCancel = () => {
+    setResult('cancelled');
+    setShowNested(false);
+    setShowModal(false);
+  };
+
+  return (
+    <ChallengeCard
+      title="3.5 Modal & Overlay Handling"
+      difficulty="Very Hard"
+      hint="Handle nested modals, backdrop clicks, and focus trapping"
+    >
+      <div className="space-y-4">
+        <button
+          onClick={() => setShowModal(true)}
+          data-testid="open-modal"
+          className="w-full py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium"
+        >
+          Open Modal
+        </button>
+
+        {showModal && (
+          <div
+            data-testid="modal-backdrop"
+            className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
+            onClick={(e) => e.target === e.currentTarget && setShowModal(false)}
+          >
+            <div
+              data-testid="modal-content"
+              className="bg-gray-800 rounded-lg p-6 w-80 max-w-full m-4"
+            >
+              <h3 className="text-lg font-bold mb-4">Confirmation Required</h3>
+              <p className="text-gray-300 mb-4">Are you sure you want to proceed?</p>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowNested(true)}
+                  data-testid="show-nested"
+                  className="flex-1 py-2 bg-yellow-600 hover:bg-yellow-700 rounded font-medium"
+                >
+                  Show Details
+                </button>
+                <button
+                  onClick={handleCancel}
+                  data-testid="modal-cancel"
+                  className="flex-1 py-2 bg-gray-600 hover:bg-gray-700 rounded font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              {showNested && (
+                <div
+                  data-testid="nested-modal-backdrop"
+                  className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-60"
+                >
+                  <div
+                    data-testid="nested-modal-content"
+                    className="bg-gray-700 rounded-lg p-6 w-72"
+                  >
+                    <h4 className="font-bold mb-3">⚠️ Final Confirmation</h4>
+                    <p className="text-sm text-gray-300 mb-4">This action cannot be undone.</p>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleConfirm}
+                        data-testid="final-confirm"
+                        className="flex-1 py-2 bg-green-600 hover:bg-green-700 rounded font-medium"
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        onClick={() => setShowNested(false)}
+                        data-testid="nested-cancel"
+                        className="flex-1 py-2 bg-gray-600 hover:bg-gray-700 rounded font-medium"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div data-testid="modal-result" className="text-sm text-gray-400">
+          Result: {result || 'No action taken'}
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+function DragDropChallenge() {
+  const [items, setItems] = useState([
+    { id: 1, text: 'First Item', zone: 'source' },
+    { id: 2, text: 'Second Item', zone: 'source' },
+    { id: 3, text: 'Third Item', zone: 'source' },
+  ]);
+  const [draggedItem, setDraggedItem] = useState(null);
+
+  const handleDragStart = (item) => {
+    setDraggedItem(item);
+  };
+
+  const handleDrop = (zone) => {
+    if (draggedItem) {
+      setItems(prev => prev.map(item =>
+        item.id === draggedItem.id ? { ...item, zone } : item
+      ));
+      setDraggedItem(null);
+    }
+  };
+
+  const sourceItems = items.filter(i => i.zone === 'source');
+  const targetItems = items.filter(i => i.zone === 'target');
+
+  return (
+    <ChallengeCard
+      title="3.6 Drag and Drop"
+      difficulty="Very Hard"
+      hint="Simulate drag events or use keyboard-based alternative"
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-gray-400">Drag items from Source to Target zone</p>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div
+            data-testid="source-zone"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => handleDrop('source')}
+            className="min-h-[150px] p-3 bg-gray-800 rounded-lg border-2 border-dashed border-gray-600"
+          >
+            <h4 className="text-sm font-medium text-gray-400 mb-2">📤 Source</h4>
+            <div className="space-y-2">
+              {sourceItems.map(item => (
+                <div
+                  key={item.id}
+                  draggable
+                  onDragStart={() => handleDragStart(item)}
+                  data-testid={`drag-item-${item.id}`}
+                  data-zone="source"
+                  className="p-2 bg-indigo-900 rounded cursor-move hover:bg-indigo-800"
+                >
+                  {item.text}
+                </div>
+              ))}
+              {sourceItems.length === 0 && (
+                <p className="text-gray-500 text-sm text-center py-4">Empty</p>
+              )}
+            </div>
+          </div>
+
+          <div
+            data-testid="target-zone"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => handleDrop('target')}
+            className="min-h-[150px] p-3 bg-gray-800 rounded-lg border-2 border-dashed border-green-700"
+          >
+            <h4 className="text-sm font-medium text-gray-400 mb-2">📥 Target</h4>
+            <div className="space-y-2">
+              {targetItems.map(item => (
+                <div
+                  key={item.id}
+                  draggable
+                  onDragStart={() => handleDragStart(item)}
+                  data-testid={`drag-item-${item.id}`}
+                  data-zone="target"
+                  className="p-2 bg-green-900 rounded cursor-move hover:bg-green-800"
+                >
+                  {item.text}
+                </div>
+              ))}
+              {targetItems.length === 0 && (
+                <p className="text-gray-500 text-sm text-center py-4">Drop here</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="text-sm text-gray-400">
+          <span data-testid="items-in-target">Items in target: {targetItems.length}</span>
+        </div>
+      </div>
+    </ChallengeCard>
+  );
+}
+
+// ============================================
+// SHARED COMPONENTS
+// ============================================
+function ChallengeHeader({ title, description }) {
+  return (
+    <div className="mb-6">
+      <h2 className="text-xl font-bold text-white">{title}</h2>
+      <p className="text-gray-400 mt-1">{description}</p>
+    </div>
+  );
+}
+
+function ChallengeCard({ title, difficulty, hint, children }) {
+  const [showHint, setShowHint] = useState(false);
+
+  const difficultyColors = {
+    'Easy': 'bg-green-900 text-green-300',
+    'Medium': 'bg-yellow-900 text-yellow-300',
+    'Hard': 'bg-orange-900 text-orange-300',
+    'Very Hard': 'bg-red-900 text-red-300'
+  };
+
+  return (
+    <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+      <div className="p-4 border-b border-gray-700 flex justify-between items-start">
+        <div>
+          <h3 className="font-semibold text-white">{title}</h3>
+          <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded ${difficultyColors[difficulty]}`}>
+            {difficulty}
+          </span>
+        </div>
+        <button
+          onClick={() => setShowHint(!showHint)}
+          className="text-gray-400 hover:text-purple-400 text-sm"
+        >
+          💡 Hint
+        </button>
+      </div>
+
+      {showHint && (
+        <div className="px-4 py-2 bg-purple-900 bg-opacity-30 border-b border-gray-700 text-sm text-purple-300">
+          💡 {hint}
+        </div>
+      )}
+
+      <div className="p-4">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<AutomationChallenge />);
+</script> <script>
+  const source = document.getElementById('app-source').textContent;
+  const output = Babel.transform(source, {
+    presets: [['react', { runtime: 'classic' }]]
+  }).code;
+  const script = document.createElement('script');
+  script.textContent = output;
+  document.body.appendChild(script);
+</script>
+</body>
+</html>
